@@ -41,11 +41,6 @@ def scan(file):
                 print("name does not match")
                 break
     
-    print(name)
-    print(characters)
-    print(keywords)
-    print(tokens)
-    print(productions)
     return name, characters, keywords, tokens, productions
 
 def get_compiler(file, actual):

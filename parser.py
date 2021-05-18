@@ -215,8 +215,8 @@ def analyze_productions(productions, tokens, keywords):
         parsed_productions[name] = productions[p]
         #stack = second(productions[p])
     firsts = first(parsed_productions)
+    print(firsts)
 
-    print(parsed_productions)
     for p in parsed_productions:
         gen_code(parsed_productions[p], parsed_productions, firsts)
         #print(string)
@@ -284,12 +284,13 @@ def firstCode(code, productions, dict_ntokens):
     endings = [")", "}", "]"]
     new_tokens = []
     counter = 0
-
     if "|" in code:
+        code = code.strip()
         list1 = code.split("|")
         for x in list1:
-            if x[0] == '"' and x[1] not in endings:
-                new_tokens.append(code[counter+1])
+            x = x.strip()
+            if x[0] == '"':                
+                new_tokens.append(x[1])
             else:
                 for l in productions: #l es la produccion que estoy leyendo
                     for n in productions:
@@ -444,6 +445,5 @@ def analyze(name, characters, keywords, tokens, productions):
     productions_parsed = analyze_productions(productions, token_parsed, keyword_parsed)
     #dfas, final_regex = make_tree(keyword_parsed, token_parsed)
     #final_dfa = make_one(dfas, final_regex)
-
 
 
