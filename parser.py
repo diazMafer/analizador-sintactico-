@@ -216,9 +216,9 @@ def analyze_productions(productions, tokens, keywords):
         #stack = second(productions[p])
     firsts = first(parsed_productions)
 
+    print(parsed_productions)
     for p in parsed_productions:
-        f = firsts[p]
-        gen_code(parsed_productions[p], parsed_productions, f)
+        gen_code(parsed_productions[p], parsed_productions, firsts)
         #print(string)
         #print(new)
     
@@ -266,23 +266,58 @@ def first(productions):
         new_tokens = []
         
     #revisar los ")" que esten dentro de las funciones a las que haga referencia la produccion
-    print(dict_ntokens)
     for l in productions: #l es la produccion que estoy leyendo
         #si esta vacio significa que no tiene terminales y busca en la primera referencia
-        print(dict_ntokens[l])
         if len(dict_ntokens[l]) == 0:
             code = productions[l]
             counter = 0
             for x in productions:
                 if str(x) in code:
-                    additional_tokens = dict_ntokens[l]
-                    additional_tokens.extend(dict_ntokens[x])
-                    dict_ntokens[l] = unique(additional_tokens)
+                    dict_ntokens[l] = dict_ntokens[x]
                     counter += 1
                 if counter > 0:
                     break   
 
     return dict_ntokens
+
+def firstCode(code, productions, dict_ntokens):
+    endings = [")", "}", "]"]
+    new_tokens = []
+    counter = 0
+
+    if "|" in code:
+        list1 = code.split("|")
+        for x in list1:
+            if x[0] == '"' and x[1] not in endings:
+                new_tokens.append(code[counter+1])
+            else:
+                for l in productions: #l es la produccion que estoy leyendo
+                    for n in productions:
+                        if str(n) in x:
+                            new_tokens = dict_ntokens[n]
+                            counter += 1
+                        if counter > 0:
+                            break
+    else:
+        while counter < len(code):
+            if code[counter] == '"':
+                #OJO LO MEJOR ES ANALIZAR POR EL | Y HACER SPLIT PARA SABER CUANTOS HAY EN EL PRIMERO 
+                if code[counter+1] not in endings:
+                    new_tokens.append(code[counter+1])
+                counter += 2
+            counter +=1
+        
+        if len(new_tokens) == 0:
+            #revisar los ")" que esten dentro de las funciones a las que haga referencia la produccion
+            for l in productions: #l es la produccion que estoy leyendo
+                for x in productions:
+                    if str(x) in code:
+                        new_tokens = dict_ntokens[x]
+                        counter += 1
+                    if counter > 0:
+                        break   
+    return new_tokens
+
                
 def second(body):
     stack = []
@@ -329,24 +364,43 @@ def second(body):
 
     return stack
 
-def gen_code(body, productions, first):
+def gen_code(body, productions, firsts):
     counter = 0
     temp = ""
     val = ""
     stack = []
     while counter < len(body):
-        if body[counter] not in ENDING and body[counter] not in OPS and body[counter] not in first:
+        if body[counter] not in ENDING and body[counter] not in OPS and body[counter] not in firsts:
             val += body[counter]
         if body[counter] in OPS:
             val = ""
             if body[counter] == "(" and body[counter+1] == ".":
                 counter += 2
                 #OJO HAY QUE ARREGLAR CONTADOR PARA QUE DETECTE EL PRINT(STR(VALUE))
-                while body[counter] != "." and body[counter+1] != ")":
+                while (body[counter] != ".") or (body[counter+1] != ")"):
                     temp += body[counter]
                     counter += 1
                 stack.append(temp)
                 temp = ""
+            elif body[counter] == "[":
+                temp = body[counter]
+                while body[counter] != "]":
+                    temp += body[counter]
+                    counter += 1
+                temp = temp.replace('[', '').replace(']','')
+                first = firstCode(temp, productions,firsts)
+                stack.append("If")
+                stack.append(first)
+            elif body[counter] == "{":
+                temp = body[counter]
+                while body[counter] != "}":
+                    temp += body[counter]
+                    counter += 1
+                temp = temp.replace('{', '').replace('}','')
+                first = firstCode(temp, productions,firsts)
+                stack.append("While")
+                stack.append(first)
+
         elif "<" in val:
             counter += 1
             while '>' not in val:
@@ -357,7 +411,8 @@ def gen_code(body, productions, first):
             stack.append(code)
             val = ""
         counter += 1 
-    print("exoresion code")
+
+    print("expresion code")
     print(stack)
     
 
@@ -387,16 +442,8 @@ def analyze(name, characters, keywords, tokens, productions):
     keyword_parsed = analyzed_keywords(keywords, character_parsed)
     token_parsed = analyzed_tokens(tokens, character_parsed)
     productions_parsed = analyze_productions(productions, token_parsed, keyword_parsed)
-    dfas, final_regex = make_tree(keyword_parsed, token_parsed)
-    final_dfa = make_one(dfas, final_regex)
+    #dfas, final_regex = make_tree(keyword_parsed, token_parsed)
+    #final_dfa = make_one(dfas, final_regex)
 
-    print("Characters parse:")
-    print(character_parsed)
-    print("Keywords parsed: ")
-    print(keyword_parsed)
-    print("Tokens parse:")
-    print(token_parsed)
-
-    return final_dfa, dfas
 
 

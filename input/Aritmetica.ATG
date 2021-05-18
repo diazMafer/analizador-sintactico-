@@ -24,8 +24,7 @@ PRODUCTIONS
 Expr= {Stat ";"}".".
 
 Stat = 	(.value = 0.)
-	expression<value>		
-	(.print(value).)
+	expression<value>		(.print(value).)
 	.
 
 expression<result> =		(.result1, result2 = 0, 0.)
