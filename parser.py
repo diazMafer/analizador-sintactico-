@@ -2,6 +2,7 @@ from scanner import get_productions
 from tree import generate_tree
 from direct import directo
 from utils import word_break
+from automata import Token
 
 #documentacion from page 6 of pdf https://ssw.jku.at/Research/Projects/Coco/Doc/UserManual.pdf 
 RESERVERD_KEYWORDS = ["ANY", "CHARACTERS", "COMMENTS", "COMPILER", "CONTEXT",
@@ -218,8 +219,9 @@ def analyze_productions(productions, tokens, keywords):
     print(firsts)
 
     for p in parsed_productions:
-        gen_code(parsed_productions[p], parsed_productions, firsts)
-        #print(string)
+        stack = production_tokens(parsed_productions[p], parsed_productions, tokens)
+        print(stack)
+        code_prods(stack)
         #print(new)
     
 
@@ -401,6 +403,9 @@ def gen_code(body, productions, firsts):
                 first = firstCode(temp, productions,firsts)
                 stack.append("While")
                 stack.append(first)
+                prueba = gen_code(temp, productions, first)
+                print("prueba en teoria")
+                print(prueba)
 
         elif "<" in val:
             counter += 1
@@ -415,6 +420,186 @@ def gen_code(body, productions, firsts):
 
     print("expresion code")
     print(stack)
+    return stack
+
+def production_tokens(string, production_dict, token_dict):
+    skip = 0
+    operator = ""
+    exclude = ['[', '{', '}', ']', '|', '"', "(", "<"]
+    current = 0
+    stack = []
+    symb_to_ignore = first(production_dict)
+    for i in range(len(string)-1):
+        
+        if skip > 0:
+            skip -= 1
+            continue
+
+        ch = string[i]
+        follow_ch = string[i+1]
+        #si no esta en los operadores... ni es un espacio
+        if ch not in exclude and ch not in symb_to_ignore:
+            operator += ch
+        
+        else:
+            #revisamos si no existe una produccion ya definida
+            is_production = check_dict(operator.strip(), production_dict)
+            is_token = check_dict(operator.strip(), token_dict)
+
+            if is_production:
+                #stack[-1] is while
+              
+                funct = operator.strip()
+                tkk = Token(type="PRODUCTION", value=f"self.{funct}()", first=None)
+                stack.append(tkk)
+
+                
+            if is_token:
+                operator = operator.strip()
+
+                #OJO HAY QUE HACER UNA FUNCION QUE LOS IDENTIFIQUE RECURSIVAMENTE I.E AUTOMATA
+                x = token_dict[operator]
+                x = x.replace("(", "").replace(")", "")
+                print(x)
+                x = x.split("ξ")[0]
+                x = x.split("|")
+                tkk = Token(type="TOKEN", value=f"{operator}", first=x)
+                stack.append(tkk)
+
+            if ch == "{":
+
+                buffer = ""
+                while ch != "}":
+                    ch = string[i]
+                    buffer += ch
+                    i += 1
+                buffer = buffer.replace("{", "").replace("}", "")
+                first_de_linea = firstCode(buffer, production_dict, symb_to_ignore)
+                tkk = Token(type="WHILE", value="while First()", first=first_de_linea)
+                stack.append(tkk)
+
+            elif ch == "|":
+                tkk = Token(type="PIPE", value="|", first=None)
+                stack.append(tkk)
+            elif ch == "[":
+                buffer = ""
+                while ch != "]":
+                    ch = string[i]
+                    buffer += ch
+                    i += 1
+
+                x = firstCode(buffer, production_dict, symb_to_ignore)
+                tkk_if = Token(type="IF", value="if()", first=x)
+                stack.append(tkk_if)
+                
+            elif ch == "}":
+                tkk = Token(type="ENDWHILE", value="", first=None)
+                stack.append(tkk)
+            elif ch == "]":
+                tkk = Token(type="ENDIF", value="", first=None)
+                stack.append(tkk)
+            elif ch == "(" and follow_ch != ".":
+                buffer = ""
+                while ch != ")":
+                    ch = string[i]
+                    buffer += ch
+                    i += 1
+
+                x = firstCode(buffer, production_dict, symb_to_ignore)
+                tkk_if = Token(type="IFP", value="if()", first=x)
+                stack.append(tkk_if)
+            
+            operator = ""
+        #sacamos codigo.
+        if ch == "(" and follow_ch == ".":
+            x, skip = get_code(string[i:])
+            first_de_linea = firstCode(string[i:], production_dict, symb_to_ignore)
+            stack.append(Token(type="CODE", value=x[2:], first=first_de_linea))
+        current += 1
+
+    return stack
+
+def code_prods(prod_tokens):
+    code = ""
+    flagWhile = None
+    counterPipes = 0
+    counterTabs = 0
+    for x in range(len(prod_tokens)):
+        if prod_tokens[x].type == "WHILE":
+            code = "while"
+            for i in prod_tokens[x].first:
+                code += " self.expect(" + '"' + i + '"' + ") or"
+            code = code[:-2]
+            code += ":\n"
+            flagWhile = x
+        elif prod_tokens[x].type == "IF":
+            flagWhile = x
+            first = prod_tokens[x].first
+            code += "if lastToken == " + "'" + first[0] + "': \n"
+        elif prod_tokens[x].type == "IFP":
+            flagWhile = x
+        elif prod_tokens[x].type == "PIPE":
+            steps = x - flagWhile + 1
+            firstWhile = prod_tokens[flagWhile].first
+            for i in firstWhile:
+                first = i 
+                counterPipes += 1
+                if counterPipes <= 1:
+                    code += "if lastToken == " + "'" + first + "': \n"
+                    codeStack = []
+                    for c in range(1,steps-1):
+                        innerCode = ""
+                        n = prod_tokens[x-c]
+                        print(n)
+                        innerCode = "\t" + n.value + "\n"
+                        codeStack.append(innerCode)
+                    reverCodeStack = codeStack.copy()
+                    reverCodeStack.reverse()
+                    print(reverCodeStack)
+                    code += ''.join(reverCodeStack)
+                else:
+                    code += "if lastToken == " + "'" + first + "': \n"
+                    for c in range(1,steps):
+                        
+                        n = prod_tokens[x+c]
+                        print(n)
+                        code += "\t" + n.value + "\n"
+
+    print("code generado")
+    print(code)
+
+def check_dict(val, dictionary):
+    keys = dictionary.keys()
+    isProd = False
+    for elem in keys:
+        if val == elem:
+            isProd = True
+            break
+    return isProd
+
+def get_code(string):
+    counter = 0
+    toReturn = ''
+    char = string[0]
+    delimiterCounter = 0
+    skip = False
+    while delimiterCounter < 2:
+        if skip:
+            skip = False
+            counter += 1
+            continue
+        try:
+            char = string[counter]
+            next_char = string[counter+1]
+        except:
+            toReturn = ""
+            counter = 0
+            break
+        if (char == "." and next_char == ")"):
+            break
+        toReturn += char
+        counter += 1
+    return toReturn, counter + 2
     
 
 def make_tree(keyword_parse_lines, token_parse_lines):

@@ -18,3 +18,12 @@ class State:
         self.transitions = []
         self.accept = False
     pass
+
+class Token:
+    def __init__(self, type, value, first):
+        self.type = type
+        self.value = value
+        self.first = first
+
+    def __repr__(self):
+        return f"TOKEN type {self.type} with value {self.value} and {self.first}"

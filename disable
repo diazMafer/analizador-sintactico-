@@ -1,0 +1,26 @@
+import http.client
+import mimetypes
+from codecs import encode
+
+conn = http.client.HTTPSConnection("{{subdomain}}.smartolt.com")
+dataList = []
+boundary = 'wL36Yn8afVp8Ag7AmP8qZ0SA4n1v9T'
+dataList.append(encode('--' + boundary))
+dataList.append(encode('Content-Disposition: form-data; name=onus_external_ids;'))
+
+dataList.append(encode('Content-Type: {}'.format('text/plain')))
+dataList.append(encode(''))
+
+dataList.append(encode("test,test1"))
+dataList.append(encode('--'+boundary+'--'))
+dataList.append(encode(''))
+body = b'\r\n'.join(dataList)
+payload = body
+headers = {
+  'X-Token': '{{api_key}}',
+  'Content-type': 'multipart/form-data; boundary={}'.format(boundary)
+}
+conn.request("POST", "/api/onu/bulk_disable", payload, headers)
+res = conn.getresponse()
+data = res.read()
+print(data.decode("utf-8"))
