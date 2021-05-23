@@ -4,7 +4,7 @@ from generate_scanner import create
 
 def main():
     print("archivo?")
-    archivo = input()
+    archivo = 'Aritmetica.atg'
     input_file = open("./input/" + archivo)
     data = input_file.read()
     input_file.close()

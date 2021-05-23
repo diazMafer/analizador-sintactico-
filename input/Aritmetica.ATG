@@ -21,7 +21,7 @@ number = digit{digit}.
 
 PRODUCTIONS
 
-Expr= {Stat ";"}".".
+Expr = {Stat ";"}".".
 
 Stat = 	(.value = 0.)
 	expression<value>		(.print(value).)

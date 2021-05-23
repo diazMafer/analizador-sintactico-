@@ -211,16 +211,15 @@ def analyzed_tokens(tokens, characters):
 
 def analyze_productions(productions, tokens, keywords):
     parsed_productions = {}
+    string = ""
     for p in productions:
         string, name = funct_name(p)
         parsed_productions[name] = productions[p]
         #stack = second(productions[p])
     firsts = first(parsed_productions)
-    print(firsts)
 
     for p in parsed_productions:
         stack = production_tokens(parsed_productions[p], parsed_productions, tokens)
-        print(stack)
         code_prods(stack)
         #print(new)
     
@@ -447,12 +446,23 @@ def production_tokens(string, production_dict, token_dict):
             is_token = check_dict(operator.strip(), token_dict)
 
             if is_production:
-                #stack[-1] is while
-              
-                funct = operator.strip()
-                tkk = Token(type="PRODUCTION", value=f"self.{funct}()", first=None)
-                stack.append(tkk)
-
+                if ch == "<":
+                    buffer = ""
+                    while ch != ">":
+                        ch = string[i]
+                        buffer += ch
+                        i += 1
+                    buffer = buffer.replace("<", "(").replace(">", ")")
+                    #(result1,result2)
+                    #["", "result,result2)"]
+                    #result,result2
+                    value = buffer.split("(")[1].replace(")","")
+                    toApend = value + " = " + "self." + operator.strip() + buffer
+                    tkk = Token(type="PRODUCTION", value=toApend, first=None)
+                    stack.append(tkk)
+                else:
+                    tkk = Token(type="PRODUCTION", value=f"self.{operator}()", first=None)
+                    stack.append(tkk)
                 
             if is_token:
                 operator = operator.strip()
@@ -460,7 +470,6 @@ def production_tokens(string, production_dict, token_dict):
                 #OJO HAY QUE HACER UNA FUNCION QUE LOS IDENTIFIQUE RECURSIVAMENTE I.E AUTOMATA
                 x = token_dict[operator]
                 x = x.replace("(", "").replace(")", "")
-                print(x)
                 x = x.split("ξ")[0]
                 x = x.split("|")
                 tkk = Token(type="TOKEN", value=f"{operator}", first=x)
@@ -523,21 +532,37 @@ def code_prods(prod_tokens):
     code = ""
     flagWhile = None
     counterPipes = 0
-    counterTabs = 0
+    counterTabs = 1
     for x in range(len(prod_tokens)):
         if prod_tokens[x].type == "WHILE":
-            code = "while"
+            code += (counterTabs*'\t') + "while"
             for i in prod_tokens[x].first:
                 code += " self.expect(" + '"' + i + '"' + ") or"
             code = code[:-2]
             code += ":\n"
             flagWhile = x
+            counterTabs += 1
         elif prod_tokens[x].type == "IF":
-            flagWhile = x
             first = prod_tokens[x].first
-            code += "if lastToken == " + "'" + first[0] + "': \n"
+            code += (counterTabs*'\t') + "if lastToken == " + "'" + first[0] + "': \n"
+            counterTabs += 1
+        elif prod_tokens[x].type == "ENDIF":
+            counterTabs -= 1
+        elif prod_tokens[x].type == "CODE":
+            if flagWhile != None:
+                pass
+            else:
+                code += (counterTabs*'\t') + prod_tokens[x].value + "\n"
+        elif prod_tokens[x].type == "PRODUCTION":
+            if flagWhile != None:
+                pass
+            else:
+                code += (counterTabs*'\t') + prod_tokens[x].value + "\n"
         elif prod_tokens[x].type == "IFP":
             flagWhile = x
+        elif prod_tokens[x].type == "ENDWHILE":
+            flagWhile = None
+            counterTabs -= 1
         elif prod_tokens[x].type == "PIPE":
             steps = x - flagWhile + 1
             firstWhile = prod_tokens[flagWhile].first
@@ -545,25 +570,25 @@ def code_prods(prod_tokens):
                 first = i 
                 counterPipes += 1
                 if counterPipes <= 1:
-                    code += "if lastToken == " + "'" + first + "': \n"
+                    code += (counterTabs*'\t') + "if lastToken == " + "'" + first + "': \n"
                     codeStack = []
+                    counterTabs += 1
                     for c in range(1,steps-1):
                         innerCode = ""
                         n = prod_tokens[x-c]
-                        print(n)
-                        innerCode = "\t" + n.value + "\n"
+                        innerCode = (counterTabs*'\t') + n.value + "\n"
                         codeStack.append(innerCode)
+                    counterTabs -= 1
                     reverCodeStack = codeStack.copy()
                     reverCodeStack.reverse()
-                    print(reverCodeStack)
                     code += ''.join(reverCodeStack)
                 else:
-                    code += "if lastToken == " + "'" + first + "': \n"
+                    code += (counterTabs*'\t') + "if lastToken == " + "'" + first + "': \n"
+                    counterTabs += 1
                     for c in range(1,steps):
-                        
                         n = prod_tokens[x+c]
-                        print(n)
-                        code += "\t" + n.value + "\n"
+                        code += (counterTabs*'\t') + n.value + "\n"
+                    counterTabs -= 1
 
     print("code generado")
     print(code)
