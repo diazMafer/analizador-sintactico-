@@ -44,7 +44,7 @@ Term<result>=				(.result1, result2 =  0,0.)
 	.
 	
 Factor<result> =	(.signo=1.)
-	["-"(.signo = -1.)]
+	["-"(.signo = -1.) ]
 	( Number<result> | "(" expression<result> ")") 
     (.result*=signo.)
 	(.return result.).

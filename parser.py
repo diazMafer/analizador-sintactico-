@@ -216,10 +216,10 @@ def analyze_productions(productions, tokens, keywords):
         string, name = funct_name(p)
         parsed_productions[name] = productions[p]
         #stack = second(productions[p])
-    firsts = first(parsed_productions)
 
     for p in parsed_productions:
         stack = production_tokens(parsed_productions[p], parsed_productions, tokens)
+        print(stack)
         code_prods(stack)
         #print(new)
     
@@ -245,26 +245,35 @@ def unique(list1):
     return unique_list
 
 
-def first(productions):
+def first(productions, tokens):
     endings = [")", "}", "]"]
     #productions = {'expr': 'codigo'}
     #dict_ntokens = {'expr': [+, *]}
     #expr hace refencia a term y term tiene -, / 
     dict_ntokens = {}
     new_tokens = []
+
+    #AQUI REVISAMOS LOS FIRST QUE ESTAN DIRECTAMENTE EN LA FUNCION ENTIENDASE LOS QUE ESTAN DENTRO DE "" O TOKENS
     for l in productions:
         code = productions[l]
         counter = 0
         #revise unicamente los ")" que estan dentro del codio de la produccion 
+        string = ""
         while counter < len(code):
+            string += code[counter]
             if code[counter] == '"':
                 #OJO LO MEJOR ES ANALIZAR POR EL | Y HACER SPLIT PARA SABER CUANTOS HAY EN EL PRIMERO 
                 if code[counter+1] not in endings:
                     new_tokens.append(code[counter+1])
                 counter += 2
+            elif string.strip() in tokens:
+                new_tokens.append(string.strip())
+                string = ""
             counter +=1
         dict_ntokens[l] = new_tokens
         new_tokens = []
+
+    #REVISAMOS LOS RECURSIVOS QUE SE ENCUENTRAN EN OTRAS PRODUCCIONES A LAS QUE SE HACEN REFERENCIA EN LA QUE SE ESTA EVALUANDO
         
     #revisar los ")" que esten dentro de las funciones a las que haga referencia la produccion
     for l in productions: #l es la produccion que estoy leyendo
@@ -282,6 +291,7 @@ def first(productions):
     return dict_ntokens
 
 def firstCode(code, productions, dict_ntokens):
+    print(dict_ntokens)
     endings = [")", "}", "]"]
     new_tokens = []
     counter = 0
@@ -320,114 +330,13 @@ def firstCode(code, productions, dict_ntokens):
                         break   
     return new_tokens
 
-               
-def second(body):
-    stack = []
-    print(body)
-    if "{" and "}" in body:
-        list1 = body.split("{")
-        #if len > 1 is some declaration before the while
-        if len(list1) > 1:
-            sublist = list1[0].split('\n')
-            for i in sublist:
-                if i != " " or i != "\n" or i != "\t" or i != '':
-                    stack.append(i)
-            def_while = list1[1]
-            list2 = def_while.split("}")
-            if len(list2) > 1:
-                dict = {}
-                dict['while'] = list2[0]
-                stack.append(dict)
-                sublist = list2[1].split('\n')
-                for x in sublist:
-                    if x != " " or x != "\n" or x != "\t" or x != '':
-                        stack.append(x)
-    elif "[" and "]" in body:
-        list1 = body.split("[")
-        #if len > 1 is some declaration before the if
-        if len(list1) > 1:
-            sublist = list1[0].split('\n')
-            for i in sublist:
-                if i != " " or i != "\n" or i != "\t" or i != '':
-                    stack.append(i)
-            def_while = list1[1]
-            list2 = def_while.split("]")
-            if len(list2) > 1:
-                dict = {}
-                dict['if'] = list2[0]
-                stack.append(dict)
-                sublist = list2[1].split('\n')
-                for x in sublist:
-                    if x != " " or x != "\n" or x != "\t" or x != '':
-                        stack.append(x)
-    else:
-        list1 = body.split("\n")
-        stack = list1
-
-    return stack
-
-def gen_code(body, productions, firsts):
-    counter = 0
-    temp = ""
-    val = ""
-    stack = []
-    while counter < len(body):
-        if body[counter] not in ENDING and body[counter] not in OPS and body[counter] not in firsts:
-            val += body[counter]
-        if body[counter] in OPS:
-            val = ""
-            if body[counter] == "(" and body[counter+1] == ".":
-                counter += 2
-                #OJO HAY QUE ARREGLAR CONTADOR PARA QUE DETECTE EL PRINT(STR(VALUE))
-                while (body[counter] != ".") or (body[counter+1] != ")"):
-                    temp += body[counter]
-                    counter += 1
-                stack.append(temp)
-                temp = ""
-            elif body[counter] == "[":
-                temp = body[counter]
-                while body[counter] != "]":
-                    temp += body[counter]
-                    counter += 1
-                temp = temp.replace('[', '').replace(']','')
-                first = firstCode(temp, productions,firsts)
-                stack.append("If")
-                stack.append(first)
-            elif body[counter] == "{":
-                temp = body[counter]
-                while body[counter] != "}":
-                    temp += body[counter]
-                    counter += 1
-                temp = temp.replace('{', '').replace('}','')
-                first = firstCode(temp, productions,firsts)
-                stack.append("While")
-                stack.append(first)
-                prueba = gen_code(temp, productions, first)
-                print("prueba en teoria")
-                print(prueba)
-
-        elif "<" in val:
-            counter += 1
-            while '>' not in val:
-                val += body[counter]
-                counter += 1
-            x = val.strip()
-            code = "self." + x.replace('<', '(').replace('>', ')')
-            stack.append(code)
-            val = ""
-        counter += 1 
-
-    print("expresion code")
-    print(stack)
-    return stack
-
 def production_tokens(string, production_dict, token_dict):
     skip = 0
     operator = ""
     exclude = ['[', '{', '}', ']', '|', '"', "(", "<"]
     current = 0
     stack = []
-    symb_to_ignore = first(production_dict)
+    symb_to_ignore = first(production_dict, token_dict)
     for i in range(len(string)-1):
         
         if skip > 0:
@@ -476,7 +385,6 @@ def production_tokens(string, production_dict, token_dict):
                 stack.append(tkk)
 
             if ch == "{":
-
                 buffer = ""
                 while ch != "}":
                     ch = string[i]
@@ -496,11 +404,9 @@ def production_tokens(string, production_dict, token_dict):
                     ch = string[i]
                     buffer += ch
                     i += 1
-
                 x = firstCode(buffer, production_dict, symb_to_ignore)
                 tkk_if = Token(type="IF", value="if()", first=x)
                 stack.append(tkk_if)
-                
             elif ch == "}":
                 tkk = Token(type="ENDWHILE", value="", first=None)
                 stack.append(tkk)
@@ -515,15 +421,18 @@ def production_tokens(string, production_dict, token_dict):
                     i += 1
 
                 x = firstCode(buffer, production_dict, symb_to_ignore)
-                tkk_if = Token(type="IFP", value="if()", first=x)
+                tkk_if = Token(type="IFP", value="", first=x)
                 stack.append(tkk_if)
+            elif ch == ")" and string[i-1] != ".":
+                tkk_if = Token(type="ENDIFP", value="", first=x)
+                stack.append(tkk_if)
+
             
             operator = ""
         #sacamos codigo.
         if ch == "(" and follow_ch == ".":
             x, skip = get_code(string[i:])
-            first_de_linea = firstCode(string[i:], production_dict, symb_to_ignore)
-            stack.append(Token(type="CODE", value=x[2:], first=first_de_linea))
+            stack.append(Token(type="CODE", value=x[2:], first=None))
         current += 1
 
     return stack
