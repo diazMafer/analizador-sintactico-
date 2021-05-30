@@ -1,3 +1,5 @@
+
+
 COMMENTS = ["/*", "*/", "//"]
 
 no_keyword = False
@@ -41,6 +43,10 @@ def scan(file):
                 print("name does not match")
                 break
     
+    print(name)
+    print(characters)
+    print(keywords)
+    print(tokens)
     return name, characters, keywords, tokens, productions
 
 def get_compiler(file, actual):
@@ -161,7 +167,7 @@ def get_end(file, actual, name):
 
 
 if __name__ == "__main__":
-    file = open("input/Aritmetica.atg")
+    file = open("input/Ejemplo.txt")
     content = file.read()
-    name, characters, keywords, tokens, productions = scan(content)
+    scanner(content)
     file.close()

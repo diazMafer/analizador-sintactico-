@@ -1,3 +1,6 @@
+switch
+do
+while
 letra
 numero
 hola
