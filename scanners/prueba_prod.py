@@ -57,10 +57,11 @@ def Factor(self,result):
 	return result
 
 def Number(self,result):
-	self.read('number')
 	if self.expect('number'): 
 		self.read('number')
-		number
+	if self.expect('decnumber'): 
+		self.read('decnumber')
+		
 	result = int(self.last_token.value)
 	return result
 

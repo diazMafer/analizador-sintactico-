@@ -5,7 +5,7 @@ from parsed_productions import analyze_productions
 
 def main():
     print("archivo?")
-    archivo = 'Aritmetica.ATG'
+    archivo = 'Double.ATG'
     input_file = open("./input/" + archivo)
     data = input_file.read()
     input_file.close()

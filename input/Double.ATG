@@ -51,6 +51,6 @@ Factor<result> =	(.signo=1.)
     (.result*=signo.)
 	(.return result.).
 
-Number<result> =  ( number | decnumber ) (.result = int(self.last_token.value).) (.return result.).
+Number<result> =  (number|decnumber) (.result = int(self.last_token.value).) (.return result.).
 
 END Double

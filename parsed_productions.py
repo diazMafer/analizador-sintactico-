@@ -105,13 +105,18 @@ def firstCode(code, productions, dict_ntokens, tokens = []):
     if "|" in code:
         code = code.strip()
         list1 = code.split("|")
+        print(list1)
         for x in list1:
+            print(x)
             x = x.strip()
             string += x
             if x[0] == '"':                
                 new_tokens.append(x[1])
             elif string.replace("(","").strip() in tokens:
                 new_tokens.append(string.replace("(","").strip())
+                string = ""
+            elif string.replace(")","").strip() in tokens:
+                new_tokens.append(string.replace(")","").strip())
                 string = ""
             else:
                 for l in productions: #l es la produccion que estoy leyendo
@@ -143,12 +148,10 @@ def firstCode(code, productions, dict_ntokens, tokens = []):
     return new_tokens
 
 def production_tokens(string, production_dict, token_dict):
-    tokens = []
     skip = 0
     operator = ""
-    exclude = ['[', '{', '}', ']', '|', '"', "(", "<"]
+    exclude = ['[', '{', '}', ']', '|', '"', "(",")", "<"]
     current = 0
-    counter = 0
     stack = []
     symb_to_ignore = first(production_dict, token_dict)
     ifFlag = False
@@ -166,6 +169,7 @@ def production_tokens(string, production_dict, token_dict):
         else:
             #revisamos si no existe una produccion ya definida
             is_production = check_dict(operator.strip(), production_dict)
+            operator = operator.replace(")", "")
             is_token = check_dict(operator.strip(), token_dict)
             if is_production:
                 if ch == "<":
@@ -309,7 +313,8 @@ def code_prods(prod_tokens):
                     for c in range(1,steps-1):
                         innerCode = ""
                         n = prod_tokens[x-c]
-                        innerCode = (counterTabs*'\t') + n.value + "\n"
+                        if n.type != "TOKEN":
+                            innerCode = (counterTabs*'\t') + n.value + "\n"
                         codeStack.append(innerCode)
                     counterTabs -= 1
                     reverCodeStack = codeStack.copy()
@@ -321,13 +326,16 @@ def code_prods(prod_tokens):
                     code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                     for c in range(1,steps):
                         n = prod_tokens[x+c]
-                        code += (counterTabs*'\t') + n.value + "\n"
+                        if n.type != "TOKEN":
+                            code += (counterTabs*'\t') + n.value + "\n"
                     counterTabs -= 1
         elif prod_tokens[x].type == "ENDIFP":
             flagWhile = None
         elif prod_tokens[x].type == "TOKEN":
-            print("alo entro mas de una vez ")
-            code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "')\n"
+            if flagWhile != None:
+                pass
+            else:
+                code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "')\n"
 
     return code
 
