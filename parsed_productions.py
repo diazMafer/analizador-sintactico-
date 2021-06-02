@@ -3,23 +3,38 @@ from automata import Token
 def analyze_productions(productions, tokens, keywords):
     parsed_productions = {}
     string = ""
+    def_funct = {}
+    all_code = ""
     for p in productions:
         string, name = funct_name(p)
+        def_funct[name] = string
         parsed_productions[name] = productions[p]
         #stack = second(productions[p])
 
     for p in parsed_productions:
-        stack = production_tokens(parsed_productions[p], parsed_productions, tokens)
-        print(stack)
-        code_prods(stack)
-        #print(new)
+        if p == "Expr":
+            string = def_funct[p]
+            stack = production_tokens(parsed_productions[p], parsed_productions, tokens)
+            print(stack)
+            code = clean()
+            string += code
+            print(string)
+            all_code += string + '\n'
+        else:
+            stack = production_tokens(parsed_productions[p], parsed_productions, tokens)
+            print(stack)
+            string = def_funct[p]
+            code = code_prods(stack)
+            string += code
+            print(string)
+            all_code += string + '\n'
+    write_code(all_code)
     
-
 def funct_name(id):
     #position 0 is always the name of the function, if len > 1 then has parameters
     function_list = id.split("<")
     string = ''
-    string += "\tdef " + function_list[0] + "(self"
+    string += "def " + function_list[0] + "(self"
     if len(function_list) > 1:
         for i in function_list[1:]:
             i = i.replace(">", "")
@@ -34,7 +49,6 @@ def unique(list1):
     # convert the set to the list
     unique_list = (list(list_set))
     return unique_list
-
 
 def first(productions, tokens):
     endings = [")", "}", "]"]
@@ -57,8 +71,8 @@ def first(productions, tokens):
                 if code[counter+1] not in endings:
                     new_tokens.append(code[counter+1])
                 counter += 2
-            elif string.strip() in tokens:
-                new_tokens.append(string.strip())
+            elif string.replace("(","").strip() in tokens:
+                new_tokens.append(string.replace("(","").strip())
                 string = ""
             counter +=1
         dict_ntokens[l] = new_tokens
@@ -81,18 +95,24 @@ def first(productions, tokens):
 
     return dict_ntokens
 
-def firstCode(code, productions, dict_ntokens):
+def firstCode(code, productions, dict_ntokens, tokens = []):
+    print(code)
     print(dict_ntokens)
     endings = [")", "}", "]"]
     new_tokens = []
     counter = 0
+    string = ""
     if "|" in code:
         code = code.strip()
         list1 = code.split("|")
         for x in list1:
             x = x.strip()
+            string += x
             if x[0] == '"':                
                 new_tokens.append(x[1])
+            elif string.replace("(","").strip() in tokens:
+                new_tokens.append(string.replace("(","").strip())
+                string = ""
             else:
                 for l in productions: #l es la produccion que estoy leyendo
                     for n in productions:
@@ -101,6 +121,7 @@ def firstCode(code, productions, dict_ntokens):
                             counter += 1
                         if counter > 0:
                             break
+            
     else:
         while counter < len(code):
             if code[counter] == '"':
@@ -122,12 +143,15 @@ def firstCode(code, productions, dict_ntokens):
     return new_tokens
 
 def production_tokens(string, production_dict, token_dict):
+    tokens = []
     skip = 0
     operator = ""
     exclude = ['[', '{', '}', ']', '|', '"', "(", "<"]
     current = 0
+    counter = 0
     stack = []
     symb_to_ignore = first(production_dict, token_dict)
+    ifFlag = False
     for i in range(len(string)-1):
         
         if skip > 0:
@@ -139,12 +163,10 @@ def production_tokens(string, production_dict, token_dict):
         #si no esta en los operadores... ni es un espacio
         if ch not in exclude and ch not in symb_to_ignore:
             operator += ch
-        
         else:
             #revisamos si no existe una produccion ya definida
             is_production = check_dict(operator.strip(), production_dict)
             is_token = check_dict(operator.strip(), token_dict)
-
             if is_production:
                 if ch == "<":
                     buffer = ""
@@ -153,16 +175,15 @@ def production_tokens(string, production_dict, token_dict):
                         buffer += ch
                         i += 1
                     buffer = buffer.replace("<", "(").replace(">", ")")
-                    #(result1,result2)
-                    #["", "result,result2)"]
-                    #result,result2
-                    value = buffer.split("(")[1].replace(")","")
-                    toApend = value + " = " + "self." + operator.strip() + buffer
-                    tkk = Token(type="PRODUCTION", value=toApend, first=None)
+                    vals = buffer.split("(")[1].replace(")", "")
+
+                    code = vals + " = " + "self." + operator.strip() + buffer
+                    tkk = Token(type="PRODUCTION", value=f"{code}", first=None)
                     stack.append(tkk)
                 else:
                     tkk = Token(type="PRODUCTION", value=f"self.{operator}()", first=None)
                     stack.append(tkk)
+                
                 
             if is_token:
                 operator = operator.strip()
@@ -174,7 +195,6 @@ def production_tokens(string, production_dict, token_dict):
                 x = x.split("|")
                 tkk = Token(type="TOKEN", value=f"{operator}", first=x)
                 stack.append(tkk)
-
             if ch == "{":
                 buffer = ""
                 while ch != "}":
@@ -183,7 +203,7 @@ def production_tokens(string, production_dict, token_dict):
                     i += 1
                 buffer = buffer.replace("{", "").replace("}", "")
                 first_de_linea = firstCode(buffer, production_dict, symb_to_ignore)
-                tkk = Token(type="WHILE", value="while First()", first=first_de_linea)
+                tkk = Token(type="WHILE", value="while", first=first_de_linea)
                 stack.append(tkk)
 
             elif ch == "|":
@@ -195,36 +215,47 @@ def production_tokens(string, production_dict, token_dict):
                     ch = string[i]
                     buffer += ch
                     i += 1
+
                 x = firstCode(buffer, production_dict, symb_to_ignore)
                 tkk_if = Token(type="IF", value="if()", first=x)
                 stack.append(tkk_if)
+                
             elif ch == "}":
                 tkk = Token(type="ENDWHILE", value="", first=None)
                 stack.append(tkk)
+
             elif ch == "]":
                 tkk = Token(type="ENDIF", value="", first=None)
                 stack.append(tkk)
-            elif ch == "(" and follow_ch != ".":
-                buffer = ""
-                while ch != ")":
-                    ch = string[i]
-                    buffer += ch
-                    i += 1
-
-                x = firstCode(buffer, production_dict, symb_to_ignore)
-                tkk_if = Token(type="IFP", value="", first=x)
-                stack.append(tkk_if)
-            elif ch == ")" and string[i-1] != ".":
-                tkk_if = Token(type="ENDIFP", value="", first=x)
-                stack.append(tkk_if)
-
-            
             operator = ""
+
         #sacamos codigo.
         if ch == "(" and follow_ch == ".":
             x, skip = get_code(string[i:])
-            stack.append(Token(type="CODE", value=x[2:], first=None))
+            
+            stack.append(Token(type="CODE", value=x[2:], first=""))
+
+        #if entre parentesis
+        elif ch == "(" and follow_ch != "." and follow_ch != '"':
+            buffer = ""
+            while ch != ")":
+                ch = string[i]
+                buffer += ch
+                i += 1
+
+            x = firstCode(buffer, production_dict, symb_to_ignore, token_dict)
+            tkk_if = Token(type="IFP", value="", first=x)
+            stack.append(tkk_if)
+            ifFlag = True
+
+        #posible end if?
+        elif ch == ")" and follow_ch != '"' and ifFlag:
+            ifFlag = False
+            tkk_end = Token(type="ENDIFP", value="", first=None)
+            stack.append(tkk_end)
+            
         current += 1
+
 
     return stack
 
@@ -244,8 +275,9 @@ def code_prods(prod_tokens):
             counterTabs += 1
         elif prod_tokens[x].type == "IF":
             first = prod_tokens[x].first
-            code += (counterTabs*'\t') + "if lastToken == " + "'" + first[0] + "': \n"
+            code += (counterTabs*'\t') + "if self.expect(" + "'" + first[0] + "'): \n"
             counterTabs += 1
+            code += (counterTabs*'\t') + "self.read(" + "'" + first[0] + "')\n"
         elif prod_tokens[x].type == "ENDIF":
             counterTabs -= 1
         elif prod_tokens[x].type == "CODE":
@@ -270,9 +302,10 @@ def code_prods(prod_tokens):
                 first = i 
                 counterPipes += 1
                 if counterPipes <= 1:
-                    code += (counterTabs*'\t') + "if lastToken == " + "'" + first + "': \n"
+                    code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
                     codeStack = []
                     counterTabs += 1
+                    code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                     for c in range(1,steps-1):
                         innerCode = ""
                         n = prod_tokens[x-c]
@@ -283,15 +316,20 @@ def code_prods(prod_tokens):
                     reverCodeStack.reverse()
                     code += ''.join(reverCodeStack)
                 else:
-                    code += (counterTabs*'\t') + "if lastToken == " + "'" + first + "': \n"
+                    code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
                     counterTabs += 1
+                    code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                     for c in range(1,steps):
                         n = prod_tokens[x+c]
                         code += (counterTabs*'\t') + n.value + "\n"
                     counterTabs -= 1
+        elif prod_tokens[x].type == "ENDIFP":
+            flagWhile = None
+        elif prod_tokens[x].type == "TOKEN":
+            print("alo entro mas de una vez ")
+            code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "')\n"
 
-    print("code generado")
-    print(code)
+    return code
 
 def check_dict(val, dictionary):
     keys = dictionary.keys()
@@ -325,3 +363,16 @@ def get_code(string):
         toReturn += char
         counter += 1
     return toReturn, counter + 2
+
+def write_code(code):
+    output = open("./scanners/" + "prueba_prod" + ".py", "w+")
+    output.write(code)
+
+def clean():
+    code = """
+    while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
+        self.Stat()
+        self.read(";")
+    self.read(".")
+    """
+    return code

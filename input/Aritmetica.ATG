@@ -1,23 +1,25 @@
-COMPILER Aritmetica    
+COMPILER Double    
+	
+(.
+			/*--------------Scanner Especification----------*/
+.)
 
 CHARACTERS 
 
-letter = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz". 
 digit = "0123456789" .
 tab = CHR(9).
 eol = CHR(10).
+blanco = eol+CHR(13)+tab+' '.
 
 KEYWORDS
 
-while = "while".
+while = "while". 
 do = "do".
-if = "if".
-switch = "switch".
 
 TOKENS
 
-ident = letter{letter|digit} EXCEPT KEYWORDS.
-number = digit{digit}.
+number = digit{digit} EXCEPT KEYWORDS.
+decnumber = digit{digit}"."digit{digit}.
 
 PRODUCTIONS
 
@@ -27,7 +29,7 @@ Stat = 	(.value = 0.)
 	expression<value>		(.print(value).)
 	.
 
-expression<result> =		(.result1, result2 = 0, 0.)
+expression<result1> =		(.result1, result2 = 0, 0.)
 	Term<result1>
 	{    "+"Term<result2>		(.result1+=result2.)
 	   | "-"Term<result2>		(.result1-=result2.)
@@ -42,12 +44,13 @@ Term<result>=				(.result1, result2 =  0,0.)
 	}							(.result=result1.)
                                 (.return result.)
 	.
-	
+
 Factor<result> =	(.signo=1.)
 	["-"(.signo = -1.) ]
 	( Number<result> | "(" expression<result> ")") 
     (.result*=signo.)
 	(.return result.).
-	
-Number<result> =  number (.result = int(self.last_token.value).) (.return result.).
-END Aritmetica
+
+Number<result> =  (number|decnumber) (.result = int(self.last_token.value).) (.return result.).
+
+END Double
