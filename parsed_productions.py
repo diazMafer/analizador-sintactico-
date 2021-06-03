@@ -51,6 +51,7 @@ def unique(list1):
     return unique_list
 
 def first(productions, tokens):
+    print(tokens)
     endings = [")", "}", "]"]
     #productions = {'expr': 'codigo'}
     #dict_ntokens = {'expr': [+, *]}
@@ -73,6 +74,9 @@ def first(productions, tokens):
                 counter += 2
             elif string.replace("(","").strip() in tokens:
                 new_tokens.append(string.replace("(","").strip())
+                string = ""
+            elif string.replace(")","").replace("|","").strip() in tokens:
+                new_tokens.append(string.replace(")","").replace("|","").strip())
                 string = ""
             counter +=1
         dict_ntokens[l] = new_tokens
@@ -374,13 +378,9 @@ def get_code(string):
 
 def write_code(code):
     output = open("./scanners/" + "prueba_prod" + ".py", "w+")
+
     output.write(code)
 
 def clean():
-    code = """
-    while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
-        self.Stat()
-        self.read(";")
-    self.read(".")
-    """
+    code = """\twhile self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):\n\t\tself.Stat()\n\t\tself.read(";")\n\tself.read(".")"""
     return code
