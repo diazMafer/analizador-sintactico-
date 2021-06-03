@@ -1,145 +1,127 @@
+
 class Parser:
-    def __init__(self, tokens):
-        self.tokens = tokens
-        self.id_token = 0
-        self.actual_token = self.tokens[self.id_token]
-        self.last_token = ''
+	def __init__(self, tokens):
+		self.tokens = tokens
+		self.id_token = 0
+		self.actual_token = self.tokens[self.id_token]
+		self.last_token = ''
 
-    def advance( self ):
-        self.id_token += 1
-        if self.id_token < len(self.tokens):
-            self.actual_token = self.tokens[self.id_token]
-            self.last_token = self.tokens[self.id_token - 1]
+	def advance( self ):
+		self.id_token += 1
+		if self.id_token < len(self.tokens):
+			self.actual_token = self.tokens[self.id_token]
+			self.last_token = self.tokens[self.id_token - 1]
 
-    def expect(self, item, arg = False):
-        og = self.id_token
-        possible = False
-        try:
-            ans = self.read(item, arg)
-            if type(ans) == bool:
-                possible = ans
-            else:
-                possible = True
-        except:
-            possible = False
-        self.id_token = og
-        self.actual_token = self.tokens[self.id_token]
-        self.last_token = self.tokens[self.id_token - 1]
-        return possible
-
-    def read(self, item, type = False):
-        if type:
-            if self.actual_token.type == item:
-                self.advance()
-                return True
-            else:
-                return False
-        else:
-            if self.actual_token.value == item:
-                self.advance()
-                return True
-            else:
-                return False
-
-    def Expr(self):
-        while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
-            print("solo entro una vez :)")
-            self.Stat()
-            self.read(";")
-        self.read(".")
-
-    def Stat(self):
-        value = 0
-        value = self.expression(value)
-        print(value)
-
-    def expression(self,result1):
-        result1, result2 = 0, 0
-        result1 = self.Term(result1)
-        while self.expect("+") or self.expect("-") :
-            if self.expect('+'): 
-                self.read('+')
-                result2 = self.Term(result2)
-                result1+=result2
-            elif self.expect('-'): 
-                self.read('-')
-                result2 = self.Term(result2)
-                result1-=result2
-            else:
-                print("error")
-            
-        return result1
-
-    def Term(self,result):
-        result1, result2 =  0,0
-        result1 = self.Factor(result1)
-        while self.expect("*") or self.expect("/") :
-            if self.expect('*'): 
-                self.read('*')
-                result2 = self.Factor(result2)
-                result1*=result2
-            if self.expect('/'): 
-                self.read('/')
-                result2 = self.Factor(result2)
-                result1/=result2
-            else:
-                print("hola")
-            
-        result=result1
-        return result
-
-    def Factor(self,result):
-        signo=1
-        if self.expect('-'): 
-            self.read('-')
-            signo = -1
-        elif self.expect('number', True): 
-            result = self.Number(result)
-        elif self.expect('decnumber', True):
-            result = self.Number(result)
-        elif self.expect('('): 
-            self.read('(')
-            result = self.expression(result)
-            self.read(')')
-        else:
-            print("chay by")
+	def read(self, item, type = False, panic = False):
         
-        result*=signo
-        return result
+		if type:
+			if self.actual_token.type == item:
+				self.advance()
+				return True
+			else:
+				print ("Error Sintactico")
+				return False
+		else:
+			if self.actual_token.value == item:
+				self.advance()
+				return True
+			else:
+				if panic:
+				    print ("Error Sintactico")
+				return False
+	def Expr(self):
+		while self.actual_token.type == 'number' or self.actual_token.type == 'decnumber' or self.actual_token.value == '-' or self.actual_token.value == '(':
+			self.Stat()
+			self.read(";", panic=True)
+		self.read(".",panic=True)
+    
+	def Stat(self):
+		value = 0
+		value = self.expression(value)
+		print(value)
 
-    def Number(self,result):
-        if self.expect('number', True):
-            self.read('number', True)
-        elif self.expect('decnumber', True):
-            self.read('decnumber', True)
-        else:
-            print("error")
-        result = float(self.last_token.value)
-        return result
+	def expression(self,result1):
+		result1, result2 = 0, 0
+		result1 = self.Term(result1)
+		while self.actual_token.value == "+" or self.actual_token.value == "-" :
+			if self.actual_token.value == '+': 
+				self.read('+', panic=True)
+				result2 = self.Term(result2)
+				result1+=result2
+			if self.actual_token.value == '-': 
+				self.read('-', panic=True)
+				result2 = self.Term(result2)
+				result1-=result2
+				
+		return result1
 
+	def Term(self,result):
+		result1, result2 =  0,0
+		result1 = self.Factor(result1)
+		while self.actual_token.value == "*" or self.actual_token.value == "/" :
+			if self.actual_token.value == '*': 
+				self.read('*', panic=True)
+				result2 = self.Factor(result2)
+				result1*=result2
+			if self.actual_token.value == '/': 
+				self.read('/', panic=True)
+				result2 = self.Factor(result2)
+				result1/=result2
+				
+		result=result1
+		return result
+
+	def Factor(self,result):
+		signo=1
+		if self.actual_token.value == '-': 
+			self.read('-', panic=True)
+			signo = -1
+		if self.actual_token.type == 'number': 
+			self.read('number', True, True)
+			result = self.Number(result)
+		if self.actual_token.type == 'decnumber': 
+			self.read('decnumber', True, True)
+			result = self.Number(result)
+		if self.actual_token.value == '(': 
+			self.read('(', panic=True)
+			result = self.expression(result)
+			self.read(')', panic=True)
+		result*=signo
+		return result
+
+	def Number(self,result):
+		if self.actual_token.type == 'number': 
+			self.read('number',True, True)
+		if self.actual_token.type == 'decnumber': 
+			self.read('decnumber', True, True)
+			
+		result = float(self.last_token.value)
+		return result
+
+#file to test
 
 import collections
 EPSILON = 'ε'
+class Automata:
+	def __init__(self, exp):
+		self.id = exp 
+		self.states = []
+
 class Token:
 	def __init__(self, type, value):
-		self.type = type
+		self.type = type 
 		self.value = value
 
-class Automata:
-     def __init__(self, exp):
-        self.id = exp 
-        self.states = []
-
 class State: 
-   def __init__(self,num):
-     self.id = num
-     self.transitions = []
-     self.accept = False 
+	def __init__(self,num):
+		self.id = num
+		self.transitions = []
+		self.accept = False 
 
 class Transition: 
-  def __init__(self,sym,to):
-        self.symbol = sym
-        self.to = to
+	def __init__(self,sym,to):
+		self.symbol = sym
+		self.to = to
 
 def is_in_language(automata, expresion):
   if expresion == ' ' or expresion == '':
@@ -521,7 +503,7 @@ def main():
               print(': False')
           last += len(valid)
           aut = 1
-          new_token = Token("ANY", valid)
+          new_token = Token('ANY', valid)
           while aut<len(automatas):
               if (is_in_language(automatas[aut], valid)):
                   new_token = Token(automatas[aut].id, valid)

@@ -12,39 +12,24 @@ class Parser:
 			self.actual_token = self.tokens[self.id_token]
 			self.last_token = self.tokens[self.id_token - 1]
 
-	def expect(self, item, arg = False):
-		og = self.id_token
-		possible = False
-		try:
-			ans = self.read(item, arg)
-			if type(ans) == bool:
-				possible = ans
-			else:
-				possible = True
-		except:
-			possible = False
-		self.id_token = og
-		self.actual_token = self.tokens[self.id_token]
-		self.last_token = self.tokens[self.id_token - 1]
-		return possible
-
 	def read(self, item, type = False):
 		if type:
 			if self.actual_token.type == item:
 				self.advance()
 				return True
 			else:
+				print ("Error sintactico esperando " + str(item))
 				return False
-				#print('expected ', item, ' got ', self.actual_token.type)
 		else:
 			if self.actual_token.value == item:
 				self.advance()
 				return True
 			else:
+				print ("Error sintactico esperando " + str(item))
 				return False
 	def Expr(self):
 
-		while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
+		while self.actual_token.type == 'number' or self.actual_token.type == 'decnumber' or self.actual_token.value == '-' or self.actual_token.value == '(':
 			self.Stat()
 			self.read(";")
 		self.read(".")
@@ -57,12 +42,12 @@ class Parser:
 	def expression(self,result1):
 		result1, result2 = 0, 0
 		result1 = self.Term(result1)
-		while self.expect("+") or self.expect("-") :
-			if self.expect('+'): 
+		while self.actual_token.value == "+"or self.actual_token.value == "-":
+			if self.actual_token.value == '+': 
 				self.read('+')
 				result2 = self.Term(result2)
 				result1+=result2
-			if self.expect('-'): 
+			if self.actual_token.value == '-': 
 				self.read('-')
 				result2 = self.Term(result2)
 				result1-=result2
@@ -72,12 +57,12 @@ class Parser:
 	def Term(self,result):
 		result1, result2 =  0,0
 		result1 = self.Factor(result1)
-		while self.expect("*") or self.expect("/") :
-			if self.expect('*'): 
+		while self.actual_token.value == "*"or self.actual_token.value == "/":
+			if self.actual_token.value == '*': 
 				self.read('*')
 				result2 = self.Factor(result2)
 				result1*=result2
-			if self.expect('/'): 
+			if self.actual_token.value == '/': 
 				self.read('/')
 				result2 = self.Factor(result2)
 				result1/=result2
@@ -87,16 +72,16 @@ class Parser:
 
 	def Factor(self,result):
 		signo=1
-		if self.expect('-'): 
+		if self.actual_token.value == '-': 
 			self.read('-')
 			signo = -1
-		if self.expect('number', True): 
+		if self.actual_token.type == 'number': 
 			self.read('number', True)
 			result = self.Number(result)
-		if self.expect('decnumber', True): 
+		if self.actual_token.type == 'decnumber': 
 			self.read('decnumber', True)
 			result = self.Number(result)
-		if self.expect('('): 
+		if self.actual_token.value == '(': 
 			self.read('(')
 			result = self.expression(result)
 			self.read(')')
@@ -104,9 +89,9 @@ class Parser:
 		return result
 
 	def Number(self,result):
-		if self.expect('number',True): 
+		if self.actual_token.type == 'number': 
 			self.read('number',True)
-		if self.expect('decnumber', True): 
+		if self.actual_token.type == 'decnumber': 
 			self.read('decnumber', True)
 			
 		result = float(self.last_token.value)

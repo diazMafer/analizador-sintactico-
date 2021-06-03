@@ -278,16 +278,23 @@ def code_prods(prod_tokens):
         if prod_tokens[x].type == "WHILE":
             code += (counterTabs*'\t') + "while"
             for i in prod_tokens[x].first:
-                code += " self.expect(" + '"' + i + '"' + ") or"
+                code += " self.actual_token.value == " + '"' + i + '"' + "or"
             code = code[:-2]
             code += ":\n"
             flagWhile = x
             counterTabs += 1
         elif prod_tokens[x].type == "IF":
             first = prod_tokens[x].first
-            code += (counterTabs*'\t') + "if self.expect(" + "'" + first[0] + "'): \n"
-            counterTabs += 1
-            code += (counterTabs*'\t') + "self.read(" + "'" + first[0] + "')\n"
+            if len(first) > 1:
+                code += (counterTabs*'\t') + "if self.actual_token.type == " + "'" + first[0] + "': \n"
+                counterTabs += 1
+                code += (counterTabs*'\t') + "self.read(" + "'" + first[0] + "')\n"
+            else:
+                code += (counterTabs*'\t') + "if self.actual_token.value == " + "'" + first[0] + "': \n"
+                counterTabs += 1
+                code += (counterTabs*'\t') + "self.read(" + "'" + first[0] + "')\n"
+                
+            
         elif prod_tokens[x].type == "ENDIF":
             counterTabs -= 1
         elif prod_tokens[x].type == "CODE":
@@ -314,12 +321,12 @@ def code_prods(prod_tokens):
                 if len(firstWhile) <= 2:
                     if counterPipes <= 1:
                         if len(first) > 1:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "',True): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.type == " + "'" + first + "': \n"
                             codeStack = []
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "',True)\n"
                         else:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.value == " + "'" + first + "': \n"
                             codeStack = []
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
@@ -335,11 +342,11 @@ def code_prods(prod_tokens):
                         code += ''.join(reverCodeStack)
                     else:
                         if len(first) > 1:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "', True): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.type == " + "'" + first + "': \n"
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "', True)\n"
                         else:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.value == " + "'" + first + "': \n"
                             codeStack = []
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
@@ -352,12 +359,12 @@ def code_prods(prod_tokens):
                 else:
                     if counterPipes <= 2:
                         if len(first) > 1:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "', True): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.type == " + "'" + first + "': \n"
                             codeStack = []
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "', True)\n"
                         else: 
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.value == " + "'" + first + "': \n"
                             codeStack = []
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
@@ -373,11 +380,11 @@ def code_prods(prod_tokens):
                         code += ''.join(reverCodeStack)
                     else:
                         if len(first) > 1:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "', True): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.type ==  " + "'" + first + "': \n"
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "', True)\n"
                         else:
-                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            code += (counterTabs*'\t') + "if self.actual_token.value == " + "'" + first + "': \n"
                             codeStack = []
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
@@ -450,35 +457,20 @@ class Parser:
 			self.actual_token = self.tokens[self.id_token]
 			self.last_token = self.tokens[self.id_token - 1]
 
-	def expect(self, item, arg = False):
-		og = self.id_token
-		possible = False
-		try:
-			ans = self.read(item, arg)
-			if type(ans) == bool:
-				possible = ans
-			else:
-				possible = True
-		except:
-			possible = False
-		self.id_token = og
-		self.actual_token = self.tokens[self.id_token]
-		self.last_token = self.tokens[self.id_token - 1]
-		return possible
-
 	def read(self, item, type = False):
 		if type:
 			if self.actual_token.type == item:
 				self.advance()
 				return True
 			else:
+				print ("Error sintactico esperando " + str(item))
 				return False
-				#print('expected ', item, ' got ', self.actual_token.type)
 		else:
 			if self.actual_token.value == item:
 				self.advance()
 				return True
 			else:
+				print ("Error sintactico esperando " + str(item))
 				return False
 """
     clase += code 
@@ -487,7 +479,7 @@ class Parser:
 
 def clean():
     code ='''
-\t\twhile self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
+\t\twhile self.actual_token.type == 'number' or self.actual_token.type == 'decnumber' or self.actual_token.value == '-' or self.actual_token.value == '(':
 \t\t\tself.Stat()
 \t\t\tself.read(";")
 \t\tself.read(".")
