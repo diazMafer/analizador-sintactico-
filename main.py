@@ -10,9 +10,9 @@ def main():
     data = input_file.read()
     input_file.close()
     name, characters, keywords, tokens, productions = scan(data)
-    analyze_productions(productions, tokens, keywords)
+    code = analyze_productions(productions, tokens, keywords)
     final_dfa, dfas = analyze(name, characters, keywords, tokens)
-    create(final_dfa, dfas, name)
+    create(final_dfa, dfas, name, code)
     
 if __name__ == "__main__":
     main()

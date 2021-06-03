@@ -1,17 +1,19 @@
 # file to create another file
 
-def create(dfa, extras, name):
+def create(dfa, extras, name, code):
     i = 0
     output = open("./scanners/" + name + ".py", "w+")
+    output.write(code)
     output.write("#file to test\n\n")
     #output.write("from libs import evaluate\n")
     output.write("import collections\n")
     output.write("EPSILON = 'ε'\n")
 
 
-    output.write("class Automata:\n     def __init__(self, exp):\n        self.id = exp \n        self.states = []\n\n")
-    output.write("class State: \n   def __init__(self,num):\n     self.id = num\n     self.transitions = []\n     self.accept = False \n\n")
-    output.write("class Transition: \n  def __init__(self,sym,to):\n        self.symbol = sym\n        self.to = to\n\n")
+    output.write("class Automata:\n\tdef __init__(self, exp):\n\t\tself.id = exp \n\t\tself.states = []\n\n")
+    output.write("class Token:\n\tdef __init__(self, type, value):\n\t\tself.type = type \n\t\tself.value = value\n\n")
+    output.write("class State: \n\tdef __init__(self,num):\n\t\tself.id = num\n\t\tself.transitions = []\n\t\tself.accept = False \n\n")
+    output.write("class Transition: \n\tdef __init__(self,sym,to):\n\t\tself.symbol = sym\n\t\tself.to = to\n\n")
 
     output.write("def is_in_language(automata, expresion):\n")
     output.write("  if expresion == ' ' or expresion == '':\n")
@@ -65,6 +67,8 @@ def create(dfa, extras, name):
     output.write("      temp += file[actual]\n")
     output.write("      if is_in_language(automata0, temp):\n")
     output.write("          validos.append(temp)\n")
+    output.write("      elif len(temp) == 1  and is_in_language(automata0, str(ord(temp))):\n")
+    output.write("          validos.append(temp)\n")
     output.write("      actual += 1\n")
     output.write("  if validos:\n")
     output.write("      return max(validos, key = len)\n")
@@ -87,6 +91,7 @@ def create(dfa, extras, name):
     output.write("  prueba.close()\n")
     
     output.write("  i = 0\n")
+    output.write("  tokens = []\n")
     output.write("  last = 0\n")
     output.write("  while i < len(data):\n")
     output.write("      valid = word_break(data, automata0, i)\n")
@@ -98,14 +103,19 @@ def create(dfa, extras, name):
     output.write("              print(': False')\n")
     output.write("          last += len(valid)\n")
     output.write("          aut = 1\n")
+    output.write("          new_token = Token('ANY', valid)\n")
     output.write("          while aut<len(automatas):\n")
     output.write("              if (is_in_language(automatas[aut], valid)):\n")
-    output.write("                  print(valid, ': ', automatas[aut].id)\n")
+    output.write("                  new_token = Token(automatas[aut].id, valid)\n")
     output.write("                  break\n")
     output.write('              aut += 1\n')
+    output.write("          print(new_token.value, ': ', new_token.type)\n")
+    output.write("          tokens.append(new_token)\n")
     output.write("          i += len(valid)\n")
     output.write("      else:\n")
     output.write("          i+=1\n")
+    output.write("  parser = Parser(tokens)\n")
+    output.write("  parser.Expr()\n")
     output.write('if __name__ == "__main__":\n'+'   main()')
 
     output.close()

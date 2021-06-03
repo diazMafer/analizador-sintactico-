@@ -34,14 +34,12 @@ class Parser:
                 return True
             else:
                 return False
-                #print('expected ', item, ' got ', self.actual_token.type)
         else:
             if self.actual_token.value == item:
                 self.advance()
                 return True
             else:
                 return False
-                #print('expected ', item, ' got ', self.actual_token.value)
 
     def Expr(self):
         while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
@@ -63,10 +61,12 @@ class Parser:
                 self.read('+')
                 result2 = self.Term(result2)
                 result1+=result2
-            if self.expect('-'): 
+            elif self.expect('-'): 
                 self.read('-')
                 result2 = self.Term(result2)
                 result1-=result2
+            else:
+                print("error")
             
         return result1
 
@@ -82,6 +82,8 @@ class Parser:
                 self.read('/')
                 result2 = self.Factor(result2)
                 result1/=result2
+            else:
+                print("hola")
             
         result=result1
         return result
@@ -91,22 +93,27 @@ class Parser:
         if self.expect('-'): 
             self.read('-')
             signo = -1
-        if self.expect('number', True): 
+        elif self.expect('number', True): 
             result = self.Number(result)
-        if self.expect('decnumber', True):
+        elif self.expect('decnumber', True):
             result = self.Number(result)
-        if self.expect('('): 
+        elif self.expect('('): 
             self.read('(')
             result = self.expression(result)
             self.read(')')
+        else:
+            print("chay by")
+        
         result*=signo
         return result
 
     def Number(self,result):
         if self.expect('number', True):
             self.read('number', True)
-        if self.expect('decnumber', True):
+        elif self.expect('decnumber', True):
             self.read('decnumber', True)
+        else:
+            print("error")
         result = float(self.last_token.value)
         return result
 
@@ -518,7 +525,6 @@ def main():
           while aut<len(automatas):
               if (is_in_language(automatas[aut], valid)):
                   new_token = Token(automatas[aut].id, valid)
-                  print(valid, ': ', automatas[aut].id)
                   break
               aut += 1
           print(new_token.value, ': ', new_token.type)

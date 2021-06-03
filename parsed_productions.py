@@ -9,8 +9,6 @@ def analyze_productions(productions, tokens, keywords):
         string, name = funct_name(p)
         def_funct[name] = string
         parsed_productions[name] = productions[p]
-        #stack = second(productions[p])
-
     for p in parsed_productions:
         if p == "Expr":
             string = def_funct[p]
@@ -28,13 +26,13 @@ def analyze_productions(productions, tokens, keywords):
             string += code
             print(string)
             all_code += string + '\n'
-    write_code(all_code)
+    code = write_code(all_code)
+    return code
     
 def funct_name(id):
-    #position 0 is always the name of the function, if len > 1 then has parameters
     function_list = id.split("<")
     string = ''
-    string += "def " + function_list[0] + "(self"
+    string += "\tdef " + function_list[0] + "(self"
     if len(function_list) > 1:
         for i in function_list[1:]:
             i = i.replace(">", "")
@@ -43,15 +41,7 @@ def funct_name(id):
 
     return string, function_list[0]
 
-def unique(list1):
-    # insert the list to the set
-    list_set = set(list1)
-    # convert the set to the list
-    unique_list = (list(list_set))
-    return unique_list
-
 def first(productions, tokens):
-    print(tokens)
     endings = [")", "}", "]"]
     #productions = {'expr': 'codigo'}
     #dict_ntokens = {'expr': [+, *]}
@@ -100,8 +90,6 @@ def first(productions, tokens):
     return dict_ntokens
 
 def firstCode(code, productions, dict_ntokens, tokens = []):
-    print(code)
-    print(dict_ntokens)
     endings = [")", "}", "]"]
     new_tokens = []
     counter = 0
@@ -109,9 +97,7 @@ def firstCode(code, productions, dict_ntokens, tokens = []):
     if "|" in code:
         code = code.strip()
         list1 = code.split("|")
-        print(list1)
         for x in list1:
-            print(x)
             x = x.strip()
             string += x
             if x[0] == '"':                
@@ -175,6 +161,13 @@ def production_tokens(string, production_dict, token_dict):
             is_production = check_dict(operator.strip(), production_dict)
             operator = operator.replace(")", "")
             is_token = check_dict(operator.strip(), token_dict)
+            poss_follow = check_follo(symb_to_ignore, ch)
+            if poss_follow and follow_ch == '"' and stack[-1].type == "PRODUCTION":
+                print(symb_to_ignore)
+                val = "self.read('" + ch + "')"
+                tkk = Token(type="FOLLOW", value=val, first=[ch])
+                stack.append(tkk)
+                
             if is_production:
                 if ch == "<":
                     buffer = ""
@@ -267,11 +260,20 @@ def production_tokens(string, production_dict, token_dict):
 
     return stack
 
+def check_follo(first, ch):
+    possibleFollow = False
+    for i in first:
+        for x in i:
+            if ch != x:
+                possibleFollow = True
+    return possibleFollow
+            
+
 def code_prods(prod_tokens):
     code = ""
     flagWhile = None
     counterPipes = 0
-    counterTabs = 1
+    counterTabs = 2
     for x in range(len(prod_tokens)):
         if prod_tokens[x].type == "WHILE":
             code += (counterTabs*'\t') + "while"
@@ -309,37 +311,93 @@ def code_prods(prod_tokens):
             for i in firstWhile:
                 first = i 
                 counterPipes += 1
-                if counterPipes <= 1:
-                    code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
-                    codeStack = []
-                    counterTabs += 1
-                    code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
-                    for c in range(1,steps-1):
-                        innerCode = ""
-                        n = prod_tokens[x-c]
-                        if n.type != "TOKEN":
-                            innerCode = (counterTabs*'\t') + n.value + "\n"
-                        codeStack.append(innerCode)
-                    counterTabs -= 1
-                    reverCodeStack = codeStack.copy()
-                    reverCodeStack.reverse()
-                    code += ''.join(reverCodeStack)
+                if len(firstWhile) <= 2:
+                    if counterPipes <= 1:
+                        if len(first) > 1:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "',True): \n"
+                            codeStack = []
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "',True)\n"
+                        else:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            codeStack = []
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
+                        for c in range(1,steps-1):
+                            innerCode = ""
+                            n = prod_tokens[x-c]
+                            if n.type != "TOKEN":
+                                innerCode = (counterTabs*'\t') + n.value + "\n"
+                            codeStack.append(innerCode)
+                        counterTabs -= 1
+                        reverCodeStack = codeStack.copy()
+                        reverCodeStack.reverse()
+                        code += ''.join(reverCodeStack)
+                    else:
+                        if len(first) > 1:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "', True): \n"
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "', True)\n"
+                        else:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            codeStack = []
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
+                        for c in range(1,steps):
+                            n = prod_tokens[x+c]
+                            print(n)
+                            if n.type != "TOKEN":
+                                code += (counterTabs*'\t') + n.value + "\n"
+                        counterTabs -= 1
                 else:
-                    code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
-                    counterTabs += 1
-                    code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
-                    for c in range(1,steps):
-                        n = prod_tokens[x+c]
-                        if n.type != "TOKEN":
-                            code += (counterTabs*'\t') + n.value + "\n"
-                    counterTabs -= 1
+                    if counterPipes <= 2:
+                        if len(first) > 1:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "', True): \n"
+                            codeStack = []
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "', True)\n"
+                        else: 
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            codeStack = []
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
+                        for c in range(1,steps-1):
+                            innerCode = ""
+                            n = prod_tokens[x-c]
+                            if n.type != "TOKEN":
+                                innerCode = (counterTabs*'\t') + n.value + "\n"
+                            codeStack.append(innerCode)
+                        counterTabs -= 1
+                        reverCodeStack = codeStack.copy()
+                        reverCodeStack.reverse()
+                        code += ''.join(reverCodeStack)
+                    else:
+                        if len(first) > 1:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "', True): \n"
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "', True)\n"
+                        else:
+                            code += (counterTabs*'\t') + "if self.expect(" + "'" + first + "'): \n"
+                            codeStack = []
+                            counterTabs += 1
+                            code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
+                        for c in range(1,steps):
+                            n = prod_tokens[x+c]
+                            print(n)
+                            if n.type != "TOKEN":
+                                code += (counterTabs*'\t') + n.value + "\n"
+                        counterTabs -= 1
         elif prod_tokens[x].type == "ENDIFP":
             flagWhile = None
         elif prod_tokens[x].type == "TOKEN":
             if flagWhile != None:
                 pass
             else:
-                code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "')\n"
+                if len(prod_tokens[x].value) > 1:
+                    code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "', True)\n"
+                else:
+                    code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "')\n"
+                    
 
     return code
 
@@ -378,9 +436,60 @@ def get_code(string):
 
 def write_code(code):
     output = open("./scanners/" + "prueba_prod" + ".py", "w+")
+    clase="""
+class Parser:
+	def __init__(self, tokens):
+		self.tokens = tokens
+		self.id_token = 0
+		self.actual_token = self.tokens[self.id_token]
+		self.last_token = ''
 
-    output.write(code)
+	def advance( self ):
+		self.id_token += 1
+		if self.id_token < len(self.tokens):
+			self.actual_token = self.tokens[self.id_token]
+			self.last_token = self.tokens[self.id_token - 1]
+
+	def expect(self, item, arg = False):
+		og = self.id_token
+		possible = False
+		try:
+			ans = self.read(item, arg)
+			if type(ans) == bool:
+				possible = ans
+			else:
+				possible = True
+		except:
+			possible = False
+		self.id_token = og
+		self.actual_token = self.tokens[self.id_token]
+		self.last_token = self.tokens[self.id_token - 1]
+		return possible
+
+	def read(self, item, type = False):
+		if type:
+			if self.actual_token.type == item:
+				self.advance()
+				return True
+			else:
+				return False
+				#print('expected ', item, ' got ', self.actual_token.type)
+		else:
+			if self.actual_token.value == item:
+				self.advance()
+				return True
+			else:
+				return False
+"""
+    clase += code 
+    output.write(clase)
+    return clase
 
 def clean():
-    code = """\twhile self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):\n\t\tself.Stat()\n\t\tself.read(";")\n\tself.read(".")"""
+    code ='''
+\t\twhile self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
+\t\t\tself.Stat()
+\t\t\tself.read(";")
+\t\tself.read(".")
+    '''
     return code

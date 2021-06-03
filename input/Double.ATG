@@ -9,7 +9,6 @@ CHARACTERS
 digit = "0123456789" .
 tab = CHR(9).
 eol = CHR(10).
-blanco = eol+CHR(13)+tab+' '.
 
 KEYWORDS
 
@@ -23,7 +22,7 @@ decnumber = digit{digit}"."digit{digit}.
 
 PRODUCTIONS
 
-Expr = {Stat ";"}".".
+Expr= {Stat ";"}".".
 
 Stat = 	(.value = 0.)
 	expression<value>		(.print(value).)
