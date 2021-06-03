@@ -1,10 +1,8 @@
 def Expr(self):
-
-    while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
-        self.Stat()
-        self.read(";")
-    self.read(".")
-    
+	while self.expect('number', True) or self.expect('decnumber', True) or self.expect('-') or self.expect('('):
+		self.Stat()
+		self.read(";")
+	self.read(".")
 def Stat(self):
 	value = 0
 	value = self.expression(value)
@@ -49,6 +47,10 @@ def Factor(self,result):
 	if self.expect('number'): 
 		self.read('number')
 		result = self.Number(result)
+	if self.expect('decnumber'): 
+		self.read('decnumber')
+		result = self.expression(result)
+		
 	if self.expect('('): 
 		self.read('(')
 		result = self.expression(result)
@@ -62,6 +64,6 @@ def Number(self,result):
 	if self.expect('decnumber'): 
 		self.read('decnumber')
 		
-	result = int(self.last_token.value)
+	result = float(self.last_token.value)
 	return result
 
