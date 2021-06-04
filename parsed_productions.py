@@ -1,4 +1,4 @@
-from automata import Token
+from automata import Node
 
 def analyze_productions(productions, tokens, keywords):
     parsed_productions = {}
@@ -58,10 +58,10 @@ def first(productions, tokens):
                 if code[counter+1] not in endings:
                     new_tokens.append(code[counter+1])
                 counter += 2
-            elif string.replace("(","").strip() in tokens: #if the char we are checking is a token add 
+            elif string.replace("(","").strip() in tokens: #if the char we are checking is a Node add 
                 new_tokens.append(string.replace("(","").strip())
                 string = ""
-            elif string.replace(")","").replace("|","").strip() in tokens: #if the char we are checking is a token add 
+            elif string.replace(")","").replace("|","").strip() in tokens: #if the char we are checking is a Node add 
                 new_tokens.append(string.replace(")","").replace("|","").strip())
                 string = ""
             counter +=1
@@ -158,7 +158,7 @@ def production_tokens(string, production_dict, token_dict):
             poss_follow = check_follow(firsts_prods, ch)
             if poss_follow and follow_ch == '"' and stack[-1].type == "production":
                 val = "self.read('" + ch + "')"
-                tkk = Token(type="follow", value=val, first=[ch])
+                tkk = Node(type="follow", value=val, first=[ch])
                 stack.append(tkk)
                 
             if is_production:
@@ -172,16 +172,16 @@ def production_tokens(string, production_dict, token_dict):
                     vals = buffer.split("(")[1].replace(")", "")
 
                     code = vals + " = " + "self." + operator.strip() + buffer
-                    tkk = Token(type="production", value=f"{code}", first=None)
+                    tkk = Node(type="production", value=f"{code}", first=None)
                     stack.append(tkk)
                 else:
-                    tkk = Token(type="production", value=f"self.{operator}()", first=None)
+                    tkk = Node(type="production", value=f"self.{operator}()", first=None)
                     stack.append(tkk)
                 
                 
             if is_token:
                 operator = operator.strip()
-                tkk = Token(type="token", value=f"{operator}", first=x)
+                tkk = Node(type="Node", value=f"{operator}", first=x)
                 stack.append(tkk)
             if ch == "{":
                 buffer = ""
@@ -191,11 +191,11 @@ def production_tokens(string, production_dict, token_dict):
                     i += 1
                 buffer = buffer.replace("{", "").replace("}", "")
                 first_de_linea = firstCode(buffer, production_dict, firsts_prods)
-                tkk = Token(type="while", value="while", first=first_de_linea)
+                tkk = Node(type="while", value="while", first=first_de_linea)
                 stack.append(tkk)
 
             elif ch == "|":
-                tkk = Token(type="or", value="|", first=None)
+                tkk = Node(type="or", value="|", first=None)
                 stack.append(tkk)
             elif ch == "[":
                 buffer = ""
@@ -205,15 +205,15 @@ def production_tokens(string, production_dict, token_dict):
                     i += 1
 
                 x = firstCode(buffer, production_dict, firsts_prods)
-                tkk_if = Token(type="if", value="if()", first=x)
+                tkk_if = Node(type="if", value="if()", first=x)
                 stack.append(tkk_if)
                 
             elif ch == "}":
-                tkk = Token(type="endwhile", value="", first=None)
+                tkk = Node(type="endwhile", value="", first=None)
                 stack.append(tkk)
 
             elif ch == "]":
-                tkk = Token(type="endif", value="", first=None)
+                tkk = Node(type="endif", value="", first=None)
                 stack.append(tkk)
             operator = ""
 
@@ -221,7 +221,7 @@ def production_tokens(string, production_dict, token_dict):
         if ch == "(" and follow_ch == ".":
             x, skip = get_code(string[i:])
             
-            stack.append(Token(type="code", value=x[2:], first=""))
+            stack.append(Node(type="code", value=x[2:], first=""))
 
         #if entre parentesis
         elif ch == "(" and follow_ch != "." and follow_ch != '"':
@@ -232,14 +232,14 @@ def production_tokens(string, production_dict, token_dict):
                 i += 1
 
             x = firstCode(buffer, production_dict, firsts_prods, token_dict)
-            tkk_if = Token(type="if op", value="", first=x)
+            tkk_if = Node(type="if op", value="", first=x)
             stack.append(tkk_if)
             ifFlag = True
 
         #posible end if?
         elif ch == ")" and follow_ch != '"' and ifFlag:
             ifFlag = False
-            tkk_end = Token(type="end if op", value="", first=None)
+            tkk_end = Node(type="end if op", value="", first=None)
             stack.append(tkk_end)
             
         current += 1
@@ -255,22 +255,22 @@ def check_follow(first, ch):
                 possibleFollow = True
     return possibleFollow
             
-def python_code(prod_tokens):
+def python_code(prod_nodes):
     code = ""
     flagWhile = None
     counterPipes = 0
     counterTabs = 2
-    for x in range(len(prod_tokens)):
-        if prod_tokens[x].type == "while":
+    for x in range(len(prod_nodes)):
+        if prod_nodes[x].type == "while":
             code += (counterTabs*'\t') + "while"
-            for i in prod_tokens[x].first:
+            for i in prod_nodes[x].first:
                 code += " self.actual_token.value == " + '"' + i + '"' + "or"
             code = code[:-2]
             code += ":\n"
             flagWhile = x
             counterTabs += 1
-        elif prod_tokens[x].type == "if":
-            first = prod_tokens[x].first
+        elif prod_nodes[x].type == "if":
+            first = prod_nodes[x].first
             if len(first) > 1:
                 code += (counterTabs*'\t') + "if self.actual_token.type == " + "'" + first[0] + "': \n"
                 counterTabs += 1
@@ -281,26 +281,26 @@ def python_code(prod_tokens):
                 code += (counterTabs*'\t') + "self.read(" + "'" + first[0] + "')\n"
                 
             
-        elif prod_tokens[x].type == "endif":
+        elif prod_nodes[x].type == "endif":
             counterTabs -= 1
-        elif prod_tokens[x].type == "code":
+        elif prod_nodes[x].type == "code":
             if flagWhile != None:
                 pass
             else:
-                code += (counterTabs*'\t') + prod_tokens[x].value + "\n"
-        elif prod_tokens[x].type == "production":
+                code += (counterTabs*'\t') + prod_nodes[x].value + "\n"
+        elif prod_nodes[x].type == "production":
             if flagWhile != None:
                 pass
             else:
-                code += (counterTabs*'\t') + prod_tokens[x].value + "\n"
-        elif prod_tokens[x].type == "if op":
+                code += (counterTabs*'\t') + prod_nodes[x].value + "\n"
+        elif prod_nodes[x].type == "if op":
             flagWhile = x
-        elif prod_tokens[x].type == "endwhile":
+        elif prod_nodes[x].type == "endwhile":
             flagWhile = None
             counterTabs -= 1
-        elif prod_tokens[x].type == "or":
+        elif prod_nodes[x].type == "or":
             steps = x - flagWhile + 1
-            firstWhile = prod_tokens[flagWhile].first
+            firstWhile = prod_nodes[flagWhile].first
             for i in firstWhile:
                 first = i 
                 counterPipes += 1
@@ -318,8 +318,8 @@ def python_code(prod_tokens):
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                         for c in range(1,steps-1):
                             innerCode = ""
-                            n = prod_tokens[x-c]
-                            if n.type != "token":
+                            n = prod_nodes[x-c]
+                            if n.type != "Node":
                                 innerCode = (counterTabs*'\t') + n.value + "\n"
                             codeStack.append(innerCode)
                         counterTabs -= 1
@@ -337,8 +337,8 @@ def python_code(prod_tokens):
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                         for c in range(1,steps):
-                            n = prod_tokens[x+c]
-                            if n.type != "token":
+                            n = prod_nodes[x+c]
+                            if n.type != "Node":
                                 code += (counterTabs*'\t') + n.value + "\n"
                         counterTabs -= 1
                 else:
@@ -355,8 +355,8 @@ def python_code(prod_tokens):
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                         for c in range(1,steps-1):
                             innerCode = ""
-                            n = prod_tokens[x-c]
-                            if n.type != "token":
+                            n = prod_nodes[x-c]
+                            if n.type != "Node":
                                 innerCode = (counterTabs*'\t') + n.value + "\n"
                             codeStack.append(innerCode)
                         counterTabs -= 1
@@ -374,20 +374,20 @@ def python_code(prod_tokens):
                             counterTabs += 1
                             code += (counterTabs*'\t') + "self.read(" + "'" + first + "')\n"
                         for c in range(1,steps):
-                            n = prod_tokens[x+c]
-                            if n.type != "token":
+                            n = prod_nodes[x+c]
+                            if n.type != "Node":
                                 code += (counterTabs*'\t') + n.value + "\n"
                         counterTabs -= 1
-        elif prod_tokens[x].type == "end if op":
+        elif prod_nodes[x].type == "end if op":
             flagWhile = None
-        elif prod_tokens[x].type == "token":
+        elif prod_nodes[x].type == "Node":
             if flagWhile != None:
                 pass
             else:
-                if len(prod_tokens[x].value) > 1:
-                    code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "', True)\n"
+                if len(prod_nodes[x].value) > 1:
+                    code += (counterTabs*'\t') + "self.read('" + prod_nodes[x].value + "', True)\n"
                 else:
-                    code += (counterTabs*'\t') + "self.read('" + prod_tokens[x].value + "')\n"
+                    code += (counterTabs*'\t') + "self.read('" + prod_nodes[x].value + "')\n"
                     
 
     return code

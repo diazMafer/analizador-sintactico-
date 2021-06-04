@@ -19,7 +19,7 @@ class State:
         self.accept = False
     pass
 
-class Token:
+class Node:
     def __init__(self, type, value, first):
         self.type = type
         self.value = value
