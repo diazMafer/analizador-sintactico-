@@ -109,7 +109,6 @@ def create(dfa, extras, name, code):
     output.write("                  new_token = Token(automatas[aut].id, valid)\n")
     output.write("                  break\n")
     output.write('              aut += 1\n')
-    output.write("          print(new_token.value, ': ', new_token.type)\n")
     output.write("          tokens.append(new_token)\n")
     output.write("          i += len(valid)\n")
     output.write("      else:\n")

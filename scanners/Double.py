@@ -508,7 +508,6 @@ def main():
                   new_token = Token(automatas[aut].id, valid)
                   break
               aut += 1
-          print(new_token.value, ': ', new_token.type)
           tokens.append(new_token)
           i += len(valid)
       else:

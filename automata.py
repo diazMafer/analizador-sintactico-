@@ -26,4 +26,4 @@ class Token:
         self.first = first
 
     def __repr__(self):
-        return f"TOKEN type {self.type} with value {self.value} and {self.first}"
+        return f"{self.type} with value {self.value} and first {self.first}"
